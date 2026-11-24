@@ -5,11 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Weekly Bitcoin price history across SHA 256 Bitcoin and BLAKE2b Bitcoin Blake, with live market data.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>BITCOIN BLAKE | PRICE HISTORY</title>
+  <title>RektPriceChart | Bitcoin SHA 256 &amp; BLAKE2b Price History</title>
   <style>
     :root {
       color-scheme: light;
@@ -105,8 +106,8 @@
 
     .support-section {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 180px;
-      gap: 28px;
+      grid-template-columns: minmax(0, 1fr) 160px;
+      gap: 24px;
       align-items: center;
       border-top: 1px solid #eee;
       margin-top: 25px;
@@ -136,19 +137,11 @@
       overflow-wrap: anywhere;
       user-select: all;
     }
-    .qr-placeholder {
+    .donation-qr {
+      display: block;
       width: 160px;
       height: 160px;
-      border: 1px dashed #cfcfcf;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 14px;
-      color: #888;
-      font-size: 10px;
-      line-height: 1.5;
-      letter-spacing: .5px;
+      object-fit: contain;
     }
     .install-section {
       border-top: 1px solid #eee;
@@ -179,7 +172,7 @@
     }
     @media (max-width: 650px) {
       .support-section { grid-template-columns: 1fr; gap: 14px; }
-      .qr-placeholder { width: 145px; height: 145px; }
+      .donation-qr { width: 145px; height: 145px; }
       .install-grid { grid-template-columns: 1fr; gap: 10px; }
     }
 
@@ -199,8 +192,8 @@
 <main>
   <header>
     <div>
-      <h1>BITCOIN PRICE HISTORY | WEEKLY</h1>
-      <div class="subtitle">BTC/USD → BTCB2/USDC · PROOF OF WORK CHANGE · BLAKE2b</div>
+      <h1>BITCOIN PRICE HISTORY</h1>
+      <div class="subtitle">SHA 256 (BITCOIN) → BLAKE2b (BITCOIN BLAKE)</div>
     </div>
     <div class="live-block">
       <div class="live-state">
@@ -222,30 +215,25 @@
     <span><i class="marker"></i> 30 AUG 2026 · PROOF OF WORK CHANGE (BLAKE2b)</span>
   </div>
 
-  <section class="support-section" aria-label="Bitcoin Blake Donations">
+  <section class="support-section" aria-label="RektPriceChart donations">
     <div>
-      <h2 class="support-title">DONATE TO BITCOIN BLAKE</h2>
+      <h2 class="support-title">DONATE TO REKT PRICE CHART</h2>
       <p class="support-copy">
-        This Bitcoin address is exclusively for donations to the Bitcoin Blake project and its ongoing development.
+        Support RektPriceChart. Donations sent to this address are in Bitcoin Blake only.
       </p>
       <div class="donation-address">bc1qt59feseuqngdcx35pypsyt435a7m5r8cf49s73</div>
     </div>
     <div>
-      <img src="/donation-qr.png"
+      <img class="donation-qr"
+           src="/donation-qr.png"
            alt="Bitcoin Blake donation QR code"
            width="160"
-           height="160"
-           style="display:block;object-fit:contain"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="qr-placeholder" aria-label="Donation QR code placeholder">
-        DONATION QR CODE<br>
-        UPLOAD donation-qr.png TO THE REPOSITORY ROOT
-      </div>
+           height="160">
     </div>
   </section>
 
-  <section class="install-section" aria-label="Install Bitcoin Blake">
-    <h2 class="install-title">INSTALL BITCOIN BLAKE</h2>
+  <section class="install-section" aria-label="Install RektPriceChart">
+    <h2 class="install-title">INSTALL REKTPRICECHART</h2>
     <div class="install-grid">
       <div class="install-item">
         <strong>iPHONE / iPAD</strong>
@@ -257,7 +245,7 @@
       </div>
       <div class="install-item">
         <strong>DESKTOP</strong>
-        Open this website in Chrome or Edge. Select the install icon in the address bar, or use the browser menu and choose “Install Bitcoin Blake”.
+        Open this website in Chrome or Edge. Select the install icon in the address bar, or use the browser menu and choose “Install RektPriceChart”.
       </div>
     </div>
   </section>
