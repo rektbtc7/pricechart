@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <title>BITCOIN BLAKE | PRICE HISTORY</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #171717;
+      --muted: #666;
+      --grid: #e8e8e8;
+      --blue: #1976c9;
+      --green: #18864b;
+      --red: #c43d3d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 34px 20px;
+      background: #fff;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    main { max-width: 1500px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin: 0 0 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(21px, 2.1vw, 30px);
+      line-height: 1.15;
+      font-weight: 500;
+      letter-spacing: -.45px;
+    }
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .35px;
+    }
+    .live-block { text-align: right; min-width: 190px; }
+    .live-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #444;
+      margin-bottom: 7px;
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 3px #18864b1a;
+    }
+    .live-price { font-size: 23px; font-weight: 500; }
+    .live-unit { font-size: 10px; color: var(--muted); margin-top: 3px; }
+    .chart-frame {
+      width: 100%;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+      padding: 10px 0 4px;
+    }
+    canvas { display: block; width: 100%; height: auto; }
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 18px;
+      padding: 12px 2px 2px;
+      color: #555; font-size: 10px; letter-spacing: .25px;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .swatch { width: 18px; height: 2px; background: var(--blue); display: inline-block; }
+    .marker { width: 18px; border-top: 1px dashed #555; display: inline-block; }
+    footer {
+      display: flex; justify-content: space-between; gap: 15px;
+      margin-top: 12px; color: #777; font-size: 10px; line-height: 1.5;
+    }
+    #status { text-align: right; }
+    @media (max-width: 650px) {
+      body { padding: 19px 13px 16px; }
+      header { gap: 10px; }
+      .live-block { min-width: 112px; }
+      .live-price { font-size: 18px; }
+      .subtitle { max-width: 210px; line-height: 1.4; }
+      footer { flex-direction: column; }
+      #status { text-align: left; }
+      .legend { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>BITCOIN PRICE HISTORY | WEEKLY</h1>
+      <div class="subtitle">BTC/USD → BTCB2/USDC · PROOF OF WORK CHANGE · BLAKE2b</div>
+    </div>
+    <div class="live-block">
+      <div class="live-state"><span class="live-dot" id="liveDot"></span><span id="liveLabel">CONNECTING</span></div>
+      <div class="live-price" id="livePrice">—</div>
+      <div class="live-unit">BTCB2 / USDC · NEOXA</div>
+    </div>
+  </header>
+
+  <section class="chart-frame">
+    <canvas id="chart" width="1500" height="860" aria-label="Weekly Bitcoin price chart from Yahoo Finance and Neoxa"></canvas>
+  </section>
+
+  <div class="legend">
+    <span><i class="swatch"></i> YAHOO FINANCE · BTC/USD</span>
+    <span><i class="swatch"></i> NEOXA EXCHANGE · BTCB2/USDC</span>
+    <span><i class="marker"></i> 30 AUG 2026 · PROOF OF WORK CHANGE (BLAKE2b)</span>
+  </div>
+  <footer>
+    <div>Yahoo weekly closes through 29 Aug · Neoxa weekly closes calculated from daily candles · Current week updates with live trades.</div>
+    <div id="status">Loading market data…</div>
+  </footer>
+</main>
+
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const START = Date.UTC(2026, 0, 1);
+  const TRANSITION = Date.UTC(2026, 7, 30);
+  const END = Date.UTC(2026, 11, 31, 23, 59, 59);
+  const canvas = document.getElementById("chart");
+  const ctx = canvas.getContext("2d");
+  const statusEl = document.getElementById("status");
+  const livePriceEl = document.getElementById("livePrice");
+  const liveLabelEl = document.getElementById("liveLabel");
+  const liveDot = document.getElementById("liveDot");
+
+  let yahooWeeks = [];
+  let neoxaWeeks = [];
+  let livePrice = null;
+  let lastTradeAt = null;
+  let socket = null;
+  let refreshTimer = null;
+
+  const money = (n, digits = 0) =>
+    Number(n).toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+  function weekEndUTC(timestamp) {
+    const d = new Date(timestamp);
+    const day = d.getUTCDay();
+    const daysToSunday = (7 - day) % 7;
+    d.setUTCDate(d.getUTCDate() + daysToSunday);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+
+  function makeWeeklyFromDaily(candles) {
+    const byWeek = new Map();
+    for (const candle of candles || []) {
+      const time = Number(candle.time) * 1000;
+      const close = Number(candle.close);
+      if (!Number.isFinite(time) || !Number.isFinite(close) || close <= 0) continue;
+      const key = weekEndUTC(time);
+      const existing = byWeek.get(key);
+      if (!existing || time > existing.time) byWeek.set(key, { time, close });
+    }
+    return [...byWeek.entries()]
+      .map(([week, item]) => ({ time: item.time, week, close: item.close }))
+      .sort((a, b) => a.time - b.time);
+  }
+
+  async function fetchJsonWithProxy(url, alwaysProxy = false) {
+    const proxyUrl = "https://proxy.cors.dev/" + url;
+    if (!alwaysProxy) {
+      try {
+        const direct = await fetch(url, { cache: "no-store", credentials: "omit" });
+        if (direct.ok) return await direct.json();
+      } catch (_) {}
+    }
+    const response = await fetch(proxyUrl, { cache: "no-store", credentials: "omit" });
+    if (!response.ok) throw new Error("Market data request failed: " + response.status);
+    return await response.json();
+  }
+
+  async function loadYahoo() {
+    const period1 = Math.floor(Date.UTC(2026, 0, 1) / 1000);
+    const period2 = Math.floor(TRANSITION / 1000);
+    const yahooUrl = "https://query1.finance.yahoo.com/v8/finance/chart/BTC-USD"
+      + "?period1=" + period1 + "&period2=" + period2 + "&interval=1wk";
+    const body = await fetchJsonWithProxy(yahooUrl, true);
+    const result = body && body.chart && body.chart.result && body.chart.result[0];
+    const timestamps = result && result.timestamp;
+    const closes = result && result.indicators && result.indicators.quote
+      && result.indicators.quote[0] && result.indicators.quote[0].close;
+    if (!Array.isArray(timestamps) || !Array.isArray(closes)) {
+      throw new Error("Yahoo response did not contain weekly BTC/USD history.");
+    }
+    yahooWeeks = timestamps.map((time, index) => ({
+      time: Number(time) * 1000,
+      close: Number(closes[index])
+    })).filter(point => Number.isFinite(point.time) && Number.isFinite(point.close)
+      && point.time < TRANSITION)
+      .sort((a, b) => a.time - b.time);
+  }
+
+  async function loadNeoxa() {
+    const neoxaUrl = "https://neoxa.exchange/api/exchange/candles/BTCB2_USDC?interval=1d";
+    const data = await fetchJsonWithProxy(neoxaUrl);
+    if (!data.success || !Array.isArray(data.candles)) {
+      throw new Error("Neoxa returned an unexpected candle response.");
+    }
+    neoxaWeeks = makeWeeklyFromDaily(data.candles)
+      .filter(point => point.time >= TRANSITION && point.time <= Date.now() + 86400000);
+    const latest = neoxaWeeks[neoxaWeeks.length - 1];
+    if (latest && livePrice === null) setLivePrice(latest.close, false);
+  }
+
+  function setLivePrice(price, fromTrade) {
+    const n = Number(price);
+    if (!Number.isFinite(n) || n <= 0) return;
+    livePrice = n;
+    if (fromTrade) lastTradeAt = Date.now();
+    livePriceEl.textContent = "$" + money(n, 2);
+    liveLabelEl.textContent = fromTrade ? "LIVE" : "LATEST CLOSE";
+    liveDot.style.background = fromTrade ? "#18864b" : "#999";
+    const currentWeek = weekEndUTC(Date.now());
+    const index = neoxaWeeks.findIndex(p => p.week === currentWeek);
+    if (index >= 0) {
+      neoxaWeeks[index] = { ...neoxaWeeks[index], close: n, time: Date.now() };
+    } else if (Date.now() >= TRANSITION) {
+      neoxaWeeks.push({ time: Date.now(), week: currentWeek, close: n });
+      neoxaWeeks.sort((a, b) => a.time - b.time);
+    }
+    draw();
+  }
+
+  function drawPanel(points, box, label, unit, color, decimals) {
+    const { x, y, w, h } = box;
+    const left = x + 82;
+    const right = x + w - 18;
+    const top = y + 30;
+    const bottom = y + h - 34;
+    const plotW = right - left;
+    const plotH = bottom - top;
+
+    ctx.fillStyle = "#333";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(label, left, y + 15);
+
+    const values = points.map(p => p.close);
+    let min = values.length ? Math.min(...values) : 0;
+    let max = values.length ? Math.max(...values) : 1;
+    if (min === max) { min *= 0.95; max *= 1.05; }
+    const pad = (max - min) * 0.10;
+    min = Math.max(0, min - pad);
+    max += pad;
+
+    const yFor = value => bottom - ((value - min) / (max - min)) * plotH;
+    const xFor = time => left + ((time - START) / (END - START)) * plotW;
+
+    ctx.strokeStyle = "#e8e8e8";
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "#555";
+    ctx.font = "11px Arial";
+    ctx.textAlign = "right";
+    for (let i = 0; i <= 4; i++) {
+      const value = min + (max - min) * i / 4;
+      const yy = yFor(value);
+      ctx.beginPath(); ctx.moveTo(left, yy); ctx.lineTo(right, yy); ctx.stroke();
+      ctx.fillText("$" + money(value, decimals), left - 10, yy + 4);
+    }
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const xx = xFor(p.time);
+      const yy = yFor(p.close);
+      if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    for (const p of points) {
+      const xx = xFor(p.time);
+      const yy = yFor(p.close);
+      ctx.beginPath(); ctx.arc(xx, yy, 3.2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(left, top); ctx.lineTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
+    return { left, right, top, bottom, xFor };
+  }
+
+  function draw() {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const cssWidth = canvas.clientWidth || 1000;
+    const cssHeight = Math.max(620, Math.round(cssWidth * 0.57));
+    canvas.style.height = cssHeight + "px";
+    canvas.width = Math.round(cssWidth * dpr);
+    canvas.height = Math.round(cssHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+    const marginTop = 8;
+    const gap = 20;
+    const panelH = (cssHeight - marginTop - gap - 48) / 2;
+    const panelW = cssWidth;
+    const upper = { x: 0, y: marginTop, w: panelW, h: panelH };
+    const lower = { x: 0, y: marginTop + panelH + gap, w: panelW, h: panelH };
+
+    const upperInfo = drawPanel(yahooWeeks, upper, "YAHOO FINANCE  |  WEEKLY CLOSE", "BTC / USD", "#1976c9", 0);
+    drawPanel(neoxaWeeks, lower, "NEOXA EXCHANGE  |  WEEKLY CLOSE FROM DAILY CANDLES", "BTCB2 / USDC", "#1976c9", 0);
+
+    const transitionX = upperInfo.xFor(TRANSITION);
+    ctx.save();
+    ctx.strokeStyle = "#1976c9";
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(transitionX, upper.y + 22);
+    ctx.lineTo(transitionX, lower.y + lower.h - 30);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = "#333";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "left";
+    const markerText = "30 AUG 2026  |  PROOF OF WORK CHANGE (BLAKE2b)";
+    const markerX = Math.min(transitionX + 8, cssWidth - 270);
+    ctx.fillText(markerText, markerX, upper.y + upper.h - 43);
+
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    ctx.font = "11px Arial";
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+    for (let month = 0; month < 12; month++) {
+      const time = Date.UTC(2026, month, 1);
+      const xx = upperInfo.xFor(time);
+      ctx.fillText(months[month] + " 2026", xx, cssHeight - 12);
+    }
+  }
+
+  function connectLive() {
+    if (typeof window.io !== "function") {
+      liveLabelEl.textContent = "REST DATA";
+      liveDot.style.background = "#999";
+      return;
+    }
+    socket = window.io("https://neoxa.exchange/exchange", {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionDelay: 1500
+    });
+    socket.on("connect", () => {
+      socket.emit("subscribe", { pair: "BTCB2_USDC" });
+      liveLabelEl.textContent = "CONNECTED";
+      liveDot.style.background = "#18864b";
+    });
+    socket.on("exchange:trade", trade => {
+      if (!trade || (trade.pair && trade.pair !== "BTCB2_USDC")) return;
+      const price = trade.price ?? trade.rate ?? trade.close ?? trade.quotePrice;
+      if (price !== undefined) setLivePrice(price, true);
+    });
+    socket.on("exchange:trades", data => {
+      const trades = data && Array.isArray(data.trades) ? data.trades : [];
+      if (trades.length) {
+        const newest = trades[0];
+        const price = newest.price ?? newest.rate ?? newest.close ?? newest.quotePrice;
+        if (price !== undefined && livePrice === null) setLivePrice(price, true);
+      }
+    });
+    socket.on("disconnect", () => {
+      liveLabelEl.textContent = "RECONNECTING";
+      liveDot.style.background = "#c58a28";
+    });
+    socket.on("connect_error", () => {
+      liveLabelEl.textContent = "RECONNECTING";
+      liveDot.style.background = "#c58a28";
+    });
+  }
+
+  async function refresh() {
+    try {
+      await loadNeoxa();
+      statusEl.textContent = "Neoxa candles refreshed · " + new Date().toLocaleTimeString();
+      if (livePrice === null && neoxaWeeks.length) setLivePrice(neoxaWeeks[neoxaWeeks.length - 1].close, false);
+      draw();
+    } catch (error) {
+      statusEl.textContent = "Neoxa update unavailable · " + error.message;
+    }
+  }
+
+  async function init() {
+    try {
+      await Promise.all([loadYahoo(), loadNeoxa()]);
+      statusEl.textContent = "Yahoo + Neoxa data loaded · " + new Date().toLocaleTimeString();
+      draw();
+    } catch (error) {
+      statusEl.textContent = "Data loading error · " + error.message;
+      draw();
+    }
+    connectLive();
+    refreshTimer = window.setInterval(refresh, 60000);
+  }
+
+  window.addEventListener("resize", draw);
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  }
+  init();
+})();
+</script>
+</body>
+</html>
