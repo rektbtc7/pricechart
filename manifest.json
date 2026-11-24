@@ -1,7 +1,8 @@
+
 {
-  "name": "Bitcoin Blake Price History",
-  "short_name": "Bitcoin Blake",
-  "description": "Weekly BTC/USD and BTCB2/USDC price history with live Neoxa market data.",
+  "name": "rektchart",
+  "short_name": "rektchart",
+  "description": "Weekly Bitcoin price history from SHA256 to BLAKE2b, with live market data.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
