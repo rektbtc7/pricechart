@@ -1,16 +1,16 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Weekly Price history across SHA 256 Bitcoin and BLAKE2b Bitcoin Blake, with live market data.">
+  <meta name="description" content="Weekly Bitcoin price history from SHA256 to BLAKE2b, with live market data.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>RektPriceChart | SHA 256 &amp; BLAKE2b Price History</title>
+  <title>RektPriceChart</title>
+
   <style>
     :root {
       color-scheme: light;
@@ -21,7 +21,11 @@
       --green: #18864b;
       --red: #c43d3d;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 28px 34px 20px;
@@ -29,7 +33,12 @@
       color: var(--ink);
       font-family: Arial, Helvetica, sans-serif;
     }
-    main { max-width: 1500px; margin: 0 auto; }
+
+    main {
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -37,6 +46,7 @@
       gap: 24px;
       margin: 0 0 14px;
     }
+
     h1 {
       margin: 0;
       font-size: clamp(21px, 2.1vw, 30px);
@@ -44,13 +54,19 @@
       font-weight: 500;
       letter-spacing: -.45px;
     }
+
     .subtitle {
       margin-top: 8px;
       color: var(--muted);
       font-size: 11px;
       letter-spacing: .35px;
     }
-    .live-block { text-align: right; min-width: 190px; }
+
+    .live-block {
+      text-align: right;
+      min-width: 190px;
+    }
+
     .live-state {
       display: inline-flex;
       align-items: center;
@@ -60,6 +76,7 @@
       color: #444;
       margin-bottom: 7px;
     }
+
     .live-dot {
       width: 7px;
       height: 7px;
@@ -67,15 +84,31 @@
       background: var(--green);
       box-shadow: 0 0 0 3px #18864b1a;
     }
-    .live-price { font-size: 23px; font-weight: 500; }
-    .live-unit { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+    .live-price {
+      font-size: 23px;
+      font-weight: 500;
+    }
+
+    .live-unit {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
     .chart-frame {
       width: 100%;
       border-top: 1px solid #eee;
       border-bottom: 1px solid #eee;
       padding: 10px 0 4px;
     }
-    canvas { display: block; width: 100%; height: auto; }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     .legend {
       display: flex;
       flex-wrap: wrap;
@@ -85,14 +118,26 @@
       font-size: 10px;
       letter-spacing: .25px;
     }
-    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
     .swatch {
       width: 18px;
       height: 2px;
       background: var(--blue);
       display: inline-block;
     }
-    .marker { width: 18px; border-top: 1px dashed #555; display: inline-block; }
+
+    .marker {
+      width: 18px;
+      border-top: 1px dashed #555;
+      display: inline-block;
+    }
+
     footer {
       display: flex;
       justify-content: space-between;
@@ -102,7 +147,10 @@
       font-size: 10px;
       line-height: 1.5;
     }
-    #status { text-align: right; }
+
+    #status {
+      text-align: right;
+    }
 
     .support-section {
       display: grid;
@@ -113,18 +161,21 @@
       margin-top: 25px;
       padding: 20px 2px 18px;
     }
+
     .support-title {
       margin: 0 0 8px;
       font-size: 13px;
       font-weight: 600;
       letter-spacing: .55px;
     }
+
     .support-copy {
       margin: 0 0 12px;
       color: #666;
       font-size: 11px;
       line-height: 1.55;
     }
+
     .donation-address {
       display: inline-block;
       max-width: 100%;
@@ -137,32 +188,38 @@
       overflow-wrap: anywhere;
       user-select: all;
     }
+
     .donation-qr {
       display: block;
       width: 160px;
       height: 160px;
       object-fit: contain;
     }
+
     .install-section {
       border-top: 1px solid #eee;
       padding: 17px 2px 8px;
     }
+
     .install-title {
       margin: 0 0 10px;
       font-size: 12px;
       font-weight: 600;
       letter-spacing: .5px;
     }
+
     .install-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
     }
+
     .install-item {
       color: #666;
       font-size: 10px;
       line-height: 1.6;
     }
+
     .install-item strong {
       display: block;
       margin-bottom: 4px;
@@ -170,48 +227,204 @@
       font-size: 10px;
       font-weight: 600;
     }
-    @media (max-width: 650px) {
-      .support-section { grid-template-columns: 1fr; gap: 14px; }
-      .donation-qr { width: 145px; height: 145px; }
-      .install-grid { grid-template-columns: 1fr; gap: 10px; }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 18px 14px 24px;
+      }
+
+      main {
+        width: 100%;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        font-size: 23px;
+        line-height: 1.1;
+      }
+
+      .subtitle {
+        margin-top: 6px;
+        font-size: 12px;
+      }
+
+      .live-block {
+        width: 100%;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        text-align: left;
+        padding: 12px 14px;
+        border: 1px solid #ededed;
+        border-radius: 8px;
+      }
+
+      .live-state {
+        grid-column: 1;
+        grid-row: 1;
+        margin: 0;
+        font-size: 10px;
+      }
+
+      .live-price {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        font-size: 22px;
+        text-align: right;
+      }
+
+      .live-unit {
+        grid-column: 1;
+        grid-row: 2;
+        margin-top: 4px;
+        font-size: 10px;
+      }
+
+      .chart-frame {
+        padding: 8px 0 2px;
+        overflow: hidden;
+      }
+
+      canvas {
+        width: 100%;
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 9px;
+        padding: 12px 2px 4px;
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      .legend span {
+        align-items: flex-start;
+      }
+
+      .legend i {
+        flex: 0 0 18px;
+        margin-top: 4px;
+      }
+
+      footer {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 12px;
+        font-size: 10px;
+      }
+
+      #status {
+        text-align: left;
+      }
+
+      .support-section {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+        margin-top: 20px;
+        padding: 18px 2px;
+      }
+
+      .support-title {
+        font-size: 13px;
+      }
+
+      .support-copy {
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .donation-address {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .donation-qr {
+        width: 132px;
+        height: 132px;
+        margin: 0 auto;
+      }
+
+      .install-section {
+        padding-top: 16px;
+      }
+
+      .install-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .install-item {
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .install-item strong {
+        font-size: 10px;
+        margin-bottom: 2px;
+      }
     }
 
-    @media (max-width: 650px) {
-      body { padding: 19px 13px 16px; }
-      header { gap: 10px; }
-      .live-block { min-width: 112px; }
-      .live-price { font-size: 18px; }
-      .subtitle { max-width: 210px; line-height: 1.4; }
-      footer { flex-direction: column; }
-      #status { text-align: left; }
-      .legend { gap: 10px; }
+    @media (max-width: 390px) {
+      body {
+        padding-left: 11px;
+        padding-right: 11px;
+      }
+
+      h1 {
+        font-size: 21px;
+      }
+
+      .live-price {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
+
 <body>
 <main>
   <header>
     <div>
-      <h1>PRICE HISTORY</h1>
-      <div class="subtitle">FROM SHA256 to BLAKE2b</div>
+      <h1>BITCOIN PRICE HISTORY</h1>
+      <div class="subtitle">From SHA256 to BLAKE2b</div>
     </div>
+
     <div class="live-block">
       <div class="live-state">
         <span class="live-dot" id="liveDot"></span>
         <span id="liveLabel">CONNECTING</span>
       </div>
+
       <div class="live-price" id="livePrice">—</div>
       <div class="live-unit">BTCB2 / USDC · NEOXA</div>
     </div>
   </header>
 
   <section class="chart-frame">
-    <canvas id="chart" width="1500" height="860" aria-label="Weekly price chart from Yahoo Finance and Neoxa"></canvas>
+    <canvas
+      id="chart"
+      width="1500"
+      height="860"
+      aria-label="One continuous weekly Bitcoin price chart from Yahoo Finance and Neoxa">
+    </canvas>
   </section>
 
   <div class="legend">
-    <span><i class="swatch"></i> YAHOO FINANCE · BTC/USD</span>
-    <span><i class="swatch"></i> NEOXA EXCHANGE · BTCB2/USDC</span>
+    <span><i class="swatch"></i> ONE CONTINUOUS WEEKLY PRICE CHART</span>
+    <span>BTC/USD · YAHOO FINANCE → BTCB2/USDC · NEOXA EXCHANGE</span>
     <span><i class="marker"></i> 30 AUG 2026 · PROOF OF WORK CHANGE (BLAKE2b)</span>
   </div>
 
@@ -223,26 +436,31 @@
       </p>
       <div class="donation-address">bc1qt59feseuqngdcx35pypsyt435a7m5r8cf49s73</div>
     </div>
+
     <div>
-      <img class="donation-qr"
-           src="/donation-qr.png"
-           alt="Bitcoin Blake donation QR code"
-           width="160"
-           height="160">
+      <img
+        class="donation-qr"
+        src="/donation-qr.png"
+        alt="Bitcoin Blake donation QR code"
+        width="160"
+        height="160">
     </div>
   </section>
 
   <section class="install-section" aria-label="Install RektPriceChart">
     <h2 class="install-title">INSTALL REKTPRICECHART</h2>
+
     <div class="install-grid">
       <div class="install-item">
         <strong>iPHONE / iPAD</strong>
         Open this website in Safari. Tap Share, choose “Add to Home Screen”, then tap Add.
       </div>
+
       <div class="install-item">
         <strong>ANDROID</strong>
         Open this website in Chrome. Tap the three dot menu, choose “Install app” or “Add to Home screen”, then confirm.
       </div>
+
       <div class="install-item">
         <strong>DESKTOP</strong>
         Open this website in Chrome or Edge. Select the install icon in the address bar, or use the browser menu and choose “Install RektPriceChart”.
@@ -258,6 +476,7 @@
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
+
 <script>
 (() => {
   "use strict";
@@ -265,8 +484,10 @@
   const START = Date.UTC(2026, 0, 1);
   const TRANSITION = Date.UTC(2026, 7, 30);
   const END = Date.UTC(2026, 11, 31, 23, 59, 59);
+
   const canvas = document.getElementById("chart");
   const ctx = canvas.getContext("2d");
+
   const statusEl = document.getElementById("status");
   const livePriceEl = document.getElementById("livePrice");
   const liveLabelEl = document.getElementById("liveLabel");
@@ -289,8 +510,14 @@
     const d = new Date(timestamp);
     const day = d.getUTCDay();
     const daysToSunday = (7 - day) % 7;
+
     d.setUTCDate(d.getUTCDate() + daysToSunday);
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+
+    return Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate()
+    );
   }
 
   function makeWeeklyFromDaily(candles) {
@@ -300,7 +527,13 @@
       const time = Number(candle.time) * 1000;
       const close = Number(candle.close);
 
-      if (!Number.isFinite(time) || !Number.isFinite(close) || close <= 0) continue;
+      if (
+        !Number.isFinite(time) ||
+        !Number.isFinite(close) ||
+        close <= 0
+      ) {
+        continue;
+      }
 
       const key = weekEndUTC(time);
       const existing = byWeek.get(key);
@@ -329,7 +562,9 @@
           credentials: "omit"
         });
 
-        if (direct.ok) return await direct.json();
+        if (direct.ok) {
+          return await direct.json();
+        }
       } catch (_) {}
     }
 
@@ -358,7 +593,10 @@
     const body = await fetchJsonWithProxy(yahooUrl, true);
 
     const result =
-      body && body.chart && body.chart.result && body.chart.result[0];
+      body &&
+      body.chart &&
+      body.chart.result &&
+      body.chart.result[0];
 
     const timestamps = result && result.timestamp;
 
@@ -373,16 +611,17 @@
       throw new Error("Yahoo response did not contain weekly BTC/USD history.");
     }
 
-    yahooWeeks = timestamps.map((time, index) => ({
-      time: Number(time) * 1000,
-      close: Number(closes[index])
-    }))
-    .filter(point =>
-      Number.isFinite(point.time) &&
-      Number.isFinite(point.close) &&
-      point.time < TRANSITION
-    )
-    .sort((a, b) => a.time - b.time);
+    yahooWeeks = timestamps
+      .map((time, index) => ({
+        time: Number(time) * 1000,
+        close: Number(closes[index])
+      }))
+      .filter(point =>
+        Number.isFinite(point.time) &&
+        Number.isFinite(point.close) &&
+        point.time < TRANSITION
+      )
+      .sort((a, b) => a.time - b.time);
   }
 
   async function loadNeoxa() {
@@ -415,7 +654,9 @@
 
     livePrice = n;
 
-    if (fromTrade) lastTradeAt = Date.now();
+    if (fromTrade) {
+      lastTradeAt = Date.now();
+    }
 
     livePriceEl.textContent = "$" + money(n, 2);
 
@@ -425,7 +666,9 @@
 
     const currentWeek = weekEndUTC(Date.now());
 
-    const index = neoxaWeeks.findIndex(p => p.week === currentWeek);
+    const index = neoxaWeeks.findIndex(
+      point => point.week === currentWeek
+    );
 
     if (index >= 0) {
       neoxaWeeks[index] = {
@@ -446,23 +689,31 @@
     draw();
   }
 
-  function drawPanel(points, box, label, unit, color, decimals) {
+  function drawChart(points, box) {
     const { x, y, w, h } = box;
 
-    const left = x + 82;
-    const right = x + w - 18;
-    const top = y + 30;
-    const bottom = y + h - 34;
+    const compact = w < 600;
 
-    const plotW = right - left;
+    const left = x + (compact ? 58 : 82);
+    const right = x + w - (compact ? 10 : 22);
+    const top = y + (compact ? 28 : 34);
+    const bottom = y + h - (compact ? 42 : 48);
+
     const plotH = bottom - top;
 
     ctx.fillStyle = "#333";
-    ctx.font = "12px Arial";
+    ctx.font = compact ? "10px Arial" : "12px Arial";
     ctx.textAlign = "left";
-    ctx.fillText(label, left, y + 15);
 
-    const values = points.map(p => p.close);
+    ctx.fillText(
+      "WEEKLY CLOSE · BTC/USD → BTCB2/USDC",
+      left,
+      y + 15
+    );
+
+    const values = points
+      .map(point => point.close)
+      .filter(Number.isFinite);
 
     let min = values.length ? Math.min(...values) : 0;
     let max = values.length ? Math.max(...values) : 1;
@@ -472,25 +723,25 @@
       max *= 1.05;
     }
 
-    const pad = (max - min) * 0.10;
+    const padding = (max - min) * 0.08;
 
-    min = Math.max(0, min - pad);
-    max += pad;
+    min = Math.max(0, min - padding);
+    max += padding;
 
     const yFor = value =>
       bottom - ((value - min) / (max - min)) * plotH;
 
     const xFor = time =>
-      left + ((time - START) / (END - START)) * plotW;
+      left + ((time - START) / (END - START)) * (right - left);
 
     ctx.strokeStyle = "#e8e8e8";
     ctx.lineWidth = 1;
     ctx.fillStyle = "#555";
-    ctx.font = "11px Arial";
+    ctx.font = compact ? "9px Arial" : "11px Arial";
     ctx.textAlign = "right";
 
-    for (let i = 0; i <= 4; i++) {
-      const value = min + (max - min) * i / 4;
+    for (let i = 0; i <= 5; i++) {
+      const value = min + (max - min) * i / 5;
       const yy = yFor(value);
 
       ctx.beginPath();
@@ -498,35 +749,63 @@
       ctx.lineTo(right, yy);
       ctx.stroke();
 
-      ctx.fillText("$" + money(value, decimals), left - 10, yy + 4);
+      ctx.fillText("$" + money(value, 0), left - 8, yy + 3);
     }
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#1976c9";
+    ctx.lineWidth = compact ? 2 : 2.5;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.beginPath();
 
-    points.forEach((p, i) => {
-      const xx = xFor(p.time);
-      const yy = yFor(p.close);
+    points.forEach((point, index) => {
+      const px = xFor(point.time);
+      const py = yFor(point.close);
 
-      if (i === 0) ctx.moveTo(xx, yy);
-      else ctx.lineTo(xx, yy);
+      if (index === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
     });
 
     ctx.stroke();
 
-    ctx.fillStyle = color;
+    ctx.fillStyle = "#1976c9";
 
-    for (const p of points) {
-      const xx = xFor(p.time);
-      const yy = yFor(p.close);
-
+    for (const point of points) {
       ctx.beginPath();
-      ctx.arc(xx, yy, 3.2, 0, Math.PI * 2);
+      ctx.arc(
+        xFor(point.time),
+        yFor(point.close),
+        compact ? 2.2 : 3,
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
     }
+
+    const transitionX = xFor(TRANSITION);
+
+    ctx.save();
+    ctx.strokeStyle = "#555";
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(transitionX, top);
+    ctx.lineTo(transitionX, bottom);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = "#333";
+    ctx.font = compact ? "9px Arial" : "10px Arial";
+    ctx.textAlign = transitionX > right - 150 ? "right" : "left";
+
+    ctx.fillText(
+      "30 AUG 2026 · BLAKE2b",
+      transitionX > right - 150 ? transitionX - 6 : transitionX + 6,
+      top + 12
+    );
 
     ctx.strokeStyle = "#222";
     ctx.lineWidth = 1;
@@ -536,13 +815,36 @@
     ctx.lineTo(right, bottom);
     ctx.stroke();
 
-    return { left, right, top, bottom, xFor };
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    ctx.font = compact ? "9px Arial" : "11px Arial";
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+
+    for (let month = 0; month < 12; month++) {
+      if (compact && month % 2 !== 0) continue;
+
+      const date = Date.UTC(2026, month, 1);
+
+      ctx.fillText(
+        months[month],
+        xFor(date),
+        bottom + (compact ? 18 : 22)
+      );
+    }
   }
 
   function draw() {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const cssWidth = canvas.clientWidth || 1000;
-    const cssHeight = Math.max(620, Math.round(cssWidth * 0.57));
+    const compact = cssWidth < 600;
+
+    const cssHeight = compact
+      ? Math.max(360, Math.round(cssWidth * 0.95))
+      : Math.max(500, Math.round(cssWidth * 0.43));
 
     canvas.style.height = cssHeight + "px";
     canvas.width = Math.round(cssWidth * dpr);
@@ -551,85 +853,19 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-    const marginTop = 8;
-    const gap = 20;
-    const panelH = (cssHeight - marginTop - gap - 48) / 2;
-    const panelW = cssWidth;
+    const points = [...yahooWeeks, ...neoxaWeeks]
+      .filter(point =>
+        Number.isFinite(point.time) &&
+        Number.isFinite(point.close)
+      )
+      .sort((a, b) => a.time - b.time);
 
-    const upper = {
+    drawChart(points, {
       x: 0,
-      y: marginTop,
-      w: panelW,
-      h: panelH
-    };
-
-    const lower = {
-      x: 0,
-      y: marginTop + panelH + gap,
-      w: panelW,
-      h: panelH
-    };
-
-    const upperInfo = drawPanel(
-      yahooWeeks,
-      upper,
-      "YAHOO FINANCE  |  WEEKLY CLOSE",
-      "BTC / USD",
-      "#1976c9",
-      0
-    );
-
-    drawPanel(
-      neoxaWeeks,
-      lower,
-      "NEOXA EXCHANGE  |  WEEKLY CLOSE FROM DAILY CANDLES",
-      "BTCB2 / USDC",
-      "#1976c9",
-      0
-    );
-
-    const transitionX = upperInfo.xFor(TRANSITION);
-
-    ctx.save();
-    ctx.strokeStyle = "#1976c9";
-    ctx.setLineDash([5, 4]);
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(transitionX, upper.y + 22);
-    ctx.lineTo(transitionX, lower.y + lower.h - 30);
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.fillStyle = "#333";
-    ctx.font = "10px Arial";
-    ctx.textAlign = "left";
-
-    const markerText =
-      "30 AUG 2026  |  PROOF OF WORK CHANGE (BLAKE2b)";
-
-    const markerX = Math.min(transitionX + 8, cssWidth - 270);
-
-    ctx.fillText(
-      markerText,
-      markerX,
-      upper.y + upper.h - 43
-    );
-
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-
-    ctx.font = "11px Arial";
-    ctx.fillStyle = "#333";
-    ctx.textAlign = "center";
-
-    for (let month = 0; month < 12; month++) {
-      const time = Date.UTC(2026, month, 1);
-      const xx = upperInfo.xFor(time);
-
-      ctx.fillText(months[month] + " 2026", xx, cssHeight - 12);
-    }
+      y: 0,
+      w: cssWidth,
+      h: cssHeight
+    });
   }
 
   function connectLive() {
@@ -646,14 +882,18 @@
     });
 
     socket.on("connect", () => {
-      socket.emit("subscribe", { pair: "BTCB2_USDC" });
+      socket.emit("subscribe", {
+        pair: "BTCB2_USDC"
+      });
 
       liveLabelEl.textContent = "CONNECTED";
       liveDot.style.background = "#18864b";
     });
 
     socket.on("exchange:trade", trade => {
-      if (!trade || (trade.pair && trade.pair !== "BTCB2_USDC")) return;
+      if (!trade || (trade.pair && trade.pair !== "BTCB2_USDC")) {
+        return;
+      }
 
       const price =
         trade.price ??
@@ -661,7 +901,9 @@
         trade.close ??
         trade.quotePrice;
 
-      if (price !== undefined) setLivePrice(price, true);
+      if (price !== undefined) {
+        setLivePrice(price, true);
+      }
     });
 
     socket.on("exchange:trades", data => {
